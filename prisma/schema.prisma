@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COMPANY
+  JOBSEEKER
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String   @db.VarChar(255)
+  email         String   @unique @db.VarChar(255)
+  profile       String?  @db.Text
+  cv            String?  @db.Text
+  portfolio     String?  @db.Text
+  password_hash String   @db.Text
+  role          Role     @default(JOBSEEKER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company      Company?      @relation(fields: [company_id], references: [id])
+  company_id   String?
+  applications Application[]
+
+  personal_tokens PersonalToken[]
+
+  @@map("users")
+}
+
+model Company {
+  id         String   @id @default(cuid())
+  logo       String?  @db.Text
+  name       String   @unique @db.VarChar(255)
+  about      String   @db.Text
+  phone      String   @db.Char(15)
+  address    String   @db.Text
+  website    String   @unique @db.VarChar(255)
+  employees  Int      @db.Integer
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  users User[]
+  jobs  Job[]
+
+  @@map("companies")
+}
+
+model Job {
+  id           String   @id @default(cuid())
+  title        String   @db.VarChar(255)
+  description  String   @db.Text
+  salary_start Int      @db.Integer
+  salary_end   Int      @db.Integer
+  start_date   DateTime
+  end_date     DateTime
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  company    Company @relation(fields: [company_at], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  company_at String
+
+  applications Application[]
+
+  @@map("jobs")
+}
+
+model Application {
+  id         String            @id @default(cuid())
+  job_id     String
+  user_id    String
+  status     ApplicationStatus @default(APPLIED)
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+
+  job  Job  @relation(fields: [job_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("applications")
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REJECTED
+  ACCEPTED
+}
+
+model PersonalToken {
+  id            String   @id @default(cuid())
+  access_token  String   @unique
+  refresh_token String   @unique
+  user_id       String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  User          User?   @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("personal_tokens")
+}
