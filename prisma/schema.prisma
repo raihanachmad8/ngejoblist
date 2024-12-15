@@ -20,29 +20,29 @@ enum Role {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String   @db.VarChar(255)
-  email         String   @unique @db.VarChar(255)
-  profile       String?  @db.Text
-  cv            String?  @db.Text
-  portfolio     String?  @db.Text
+  id        String  @id @default(cuid())
+  name      String  @db.VarChar(255)
+  email     String  @unique @db.VarChar(255)
+  profile   String? @db.Text
+  cv        String? @db.Text
+  portfolio String? @db.Text
 
   password_hash String   @db.Text
   role          Role     @default(JOBSEEKER)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  company      Company?      @relation(fields: [company_id], references: [id])
-  company_id   String?
   applications Application[]
 
   personal_tokens PersonalToken[]
+  Company         Company[]
 
   @@map("users")
 }
 
 model Company {
   id         String   @id @default(cuid())
+  user_id    String
   logo       String?  @db.Text
   name       String   @unique @db.VarChar(255)
   about      String   @db.Text
@@ -53,8 +53,8 @@ model Company {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  users User[]
-  jobs  Job[]
+  jobs Job[]
+  user User  @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("companies")
 }
@@ -105,7 +105,7 @@ model PersonalToken {
   user_id       String
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
-  User          User?   @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  User          User?    @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("personal_tokens")
 }

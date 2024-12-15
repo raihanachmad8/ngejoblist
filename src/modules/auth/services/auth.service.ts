@@ -25,10 +25,11 @@ export class AuthService {
 
   private async generateAccessToken(
     userId: string,
+    role: Role,
     email: string,
   ): Promise<string> {
     return this.jwtService.sign(
-      { sub: userId, email },
+      { sub: userId, role, email },
       {
         secret: this.configService.get<string>('auth.jwt.accessSecret'),
         expiresIn: this.configService.get<string>('auth.jwt.accessExpiration'),
@@ -56,7 +57,7 @@ export class AuthService {
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [{ email, name }],
-      }
+      },
     });
     if (existingUser) {
       if (existingUser.email === email) {
@@ -84,7 +85,11 @@ export class AuthService {
         });
 
         const token = {
-          access_token: await this.generateAccessToken(user.id, user.email),
+          access_token: await this.generateAccessToken(
+            user.id,
+            user.role,
+            user.email,
+          ),
           refresh_token: await this.generateRefreshToken(user.id, user.email),
         };
 
@@ -121,21 +126,25 @@ export class AuthService {
 
     this.logger.log(`Signup company attempt for email: ${email}`);
 
-    const existingUser = await this.prisma.user.findFirst({
+    const existingUser = await this.prisma.company.findFirst({
       where: {
-        OR: [{ email }, { company: { name } }],
+        OR: [{ user: { email } }, { name }],
       },
-      include: { company: true },
+      include: { user: true },
     });
 
     if (existingUser) {
-      if (existingUser.email === email) {
-        this.logger.warn(`Signup company failed - email already registered: ${email}`);
+      if (existingUser.user.email === email) {
+        this.logger.warn(
+          `Signup company failed - email already registered: ${email}`,
+        );
         throw new ConflictException('Email already registered');
       }
 
-      if (existingUser.company.name === name) {
-        this.logger.warn(`Signup company failed - company name already registered: ${name}`);
+      if (existingUser.user.name === name) {
+        this.logger.warn(
+          `Signup company failed - company name already registered: ${name}`,
+        );
         throw new ConflictException('Company name already registered');
       }
     }
@@ -144,48 +153,62 @@ export class AuthService {
 
     try {
       const result = await this.prisma.$transaction(async (prisma) => {
-        const user = await prisma.user.create({
+        const company = await prisma.company.create({
           data: {
-            email,
             name,
-            role: Role.COMPANY,
-            password_hash: hashedPassword,
-            company: {
-              create: { name, about, address, employees, phone, website },
+            about,
+            address,
+            employees,
+            phone,
+            website,
+            user: {
+              create: {
+                email,
+                name,
+                role: Role.COMPANY,
+                password_hash: hashedPassword,
+              },
             },
           },
-          include: { company: true },
+          include: { user: true },
         });
 
         const token = {
-          access_token: await this.generateAccessToken(user.id, user.email),
-          refresh_token: await this.generateRefreshToken(user.id, user.email),
+          access_token: await this.generateAccessToken(
+            company.user.id,
+            company.user.role,
+            company.user.email,
+
+          ),
+          refresh_token: await this.generateRefreshToken(company.user.id, company.user.email),
         };
 
         await prisma.personalToken.create({
           data: {
-            user_id: user.id,
+            user_id: company.user.id,
             access_token: token.access_token,
             refresh_token: token.refresh_token,
           },
         });
 
-        return { user, token };
+        return { company, token };
       });
 
       this.logger.log(`Signup company successful for email: ${email}`);
       return {
-        user: {
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          role: result.user.role,
-          company: {
-            about: result.user.company.about,
-            address: result.user.company.address,
-            employees: result.user.company.employees,
-            phone: result.user.company.phone,
-            website: result.user.company.website,
+        company: {
+          id: result.company.id,
+          name: result.company.name,
+          about: result.company.about,
+          address: result.company.address,
+          employees: result.company.employees,
+          phone: result.company.phone,
+          website: result.company.website,
+          user: {
+            id: result.company.user.id,
+            email: result.company.user.email,
+            name: result.company.user.name,
+            role: result.company.user.role,
           },
         },
         token: result.token,
@@ -219,7 +242,11 @@ export class AuthService {
     }
 
     const token = {
-      access_token: await this.generateAccessToken(user.id, user.email),
+      access_token: await this.generateAccessToken(
+        user.id,
+        user.role,
+        user.email,
+      ),
       refresh_token: await this.generateRefreshToken(user.id, user.email),
     };
 
@@ -297,6 +324,7 @@ export class AuthService {
 
         const newAccessToken = await this.generateAccessToken(
           token.User.id,
+          token.User.role,
           token.User.email,
         );
 

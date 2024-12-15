@@ -16,11 +16,6 @@ export class UserSeeder extends ContractSeeder {
 
     const company = Array.from({ length: 5 }, (_, i) => {
       return {
-        name: faker.company.name(),
-        email: 'company' + i + '@example.com',
-        password: 'Password@1234',
-        salt: bcrypt.genSaltSync(10),
-        role: Role.COMPANY,
         company: {
           name: faker.company.name(),
           about: faker.lorem.paragraph(),
@@ -31,6 +26,13 @@ export class UserSeeder extends ContractSeeder {
           }),
           phone: faker.helpers.replaceSymbols('08############'),
           website: faker.internet.url(),
+          user: {
+            name: faker.company.name(),
+        email: 'company' + i + '@example.com',
+        password: 'Password@1234',
+        salt: bcrypt.genSaltSync(10),
+        role: Role.COMPANY,
+      }
         },
       };
     });
@@ -58,20 +60,23 @@ export class UserSeeder extends ContractSeeder {
     );
 
     await Promise.all(
-      [...company].map(async (user) => {
-        await prisma.user.create({
+      [...company].map(async (company) => {
+        await prisma.company.create({
           data: {
-            name: user.name,
-            email: user.email,
-            password_hash: bcrypt.hashSync(user.password, user.salt),
-            company: {
+            name: company.company.name,
+            about: company.company.about,
+            address: company.company.address,
+            employees: company.company.employees,
+            phone: company.company.phone,
+            website: company.company.website,
+            user: {
               create: {
-                name: user.company.name,
-                about: user.company.about,
-                phone: user.company.phone,
-                address: user.company.address,
-                website: user.company.website,
-                employees: user.company.employees,
+                name: company.company.user.name,
+                email: company.company.user.email,
+                password_hash: bcrypt.hashSync(
+                  company.company.user.password,
+                  company.company.user.salt,
+                ),
               },
             },
           },
