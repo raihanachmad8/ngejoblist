@@ -64,7 +64,7 @@ export interface EmailConfig {
 }
 
 export interface StorageConfig {
-  driver: 'local' | 's3' | 'gcs';
+  driver: 'local' | 's3' | 'gcs' | 'cloudinary';
   local?: {
     uploadPath: string;
     maxFileSize: number; // MB

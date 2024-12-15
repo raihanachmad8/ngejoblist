@@ -79,7 +79,7 @@ async function bootstrap() {
     .setTitle('API Documentation')
     .setDescription('The API documentation for the application')
     .setVersion('1.0')
-    .addServer('http://localhost:3000/api/v1', 'Local development server')
+    .addServer('http://localhost:3000', 'Local development server')
     .setContact(
       'Achmad Raihan Fahrezi Effendy',
       'https://raihanachmad.web.id',

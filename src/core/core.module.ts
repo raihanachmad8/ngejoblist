@@ -13,6 +13,7 @@ import emailConfig from '../common/config/email.config';
 import storageConfig from '../common/config/storage.config';
 import loggingConfig from '../common/config/logging.config';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Global()
 @Module({
@@ -33,8 +34,9 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
     }),
     LoggerModule,
     PrismaModule,
+    CloudinaryModule,
   ],
-  exports: [ConfigModule, LoggerModule, PrismaModule],
+  exports: [ConfigModule, LoggerModule, PrismaModule, CloudinaryModule],
 })
 export class CoreModule {
   configure(consumer: MiddlewareConsumer) {

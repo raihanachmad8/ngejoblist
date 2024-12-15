@@ -5,7 +5,6 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/core/database/prisma.service';
 import { TransformResponseInterceptor } from '../src/common/inteceptors/response.interceptor';
 import { CryptoUtil } from '../src/common/utils';
-import emailConfig from 'src/common/config/email.config';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
