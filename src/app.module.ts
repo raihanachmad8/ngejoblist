@@ -9,6 +9,7 @@ import {
 } from '@nestjs/throttler';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ModulesModule } from './modules/modules.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { APP_GUARD } from '@nestjs/core';
     }),
     CommonModule,
     CoreModule,
+    ModulesModule 
   ],
   controllers: [AppController],
   providers: [

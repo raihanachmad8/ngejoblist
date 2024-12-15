@@ -26,6 +26,7 @@ model User {
   profile       String?  @db.Text
   cv            String?  @db.Text
   portfolio     String?  @db.Text
+
   password_hash String   @db.Text
   role          Role     @default(JOBSEEKER)
   createdAt     DateTime @default(now())

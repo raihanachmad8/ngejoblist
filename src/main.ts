@@ -85,6 +85,7 @@ async function bootstrap() {
       'https://raihanachmad.web.id',
       'raihanachmad8@gmail.com',
     )
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
