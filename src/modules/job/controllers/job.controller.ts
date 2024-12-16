@@ -21,7 +21,7 @@ import {
   UpdateJobInput,
   FilterGetAllInput,
 } from '../dto/job.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -91,6 +91,38 @@ export class JobController {
     status: HttpStatus.OK,
     description: 'List of all jobs retrieved successfully',
   })
+  @ApiQuery({
+    name: 'title',
+    required: false,
+    type: 'string',
+    description: 'Filter jobs by title (partial match allowed)',
+  })
+  @ApiQuery({
+    name: 'salary_start',
+    required: false,
+    type: 'number',
+    description: 'Filter jobs with minimum salary start',
+  })
+  @ApiQuery({
+    name: 'salary_end',
+    required: false,
+    type: 'number',
+    description: 'Filter jobs with maximum salary end',
+  })
+  @ApiQuery({
+    name: 'start_date',
+    required: false,
+    type: 'string',
+    format: 'date',
+    description: 'Filter jobs starting on or after this date',
+  })
+  @ApiQuery({
+    name: 'end_date',
+    required: false,
+    type: 'string',
+    format: 'date',
+    description: 'Filter jobs ending on or before this date',
+  })
   async getAllJobs(
     @Query(new ZodValidationPipe(FilterGetAllDto)) filters: FilterGetAllInput,
   ) {
@@ -119,7 +151,6 @@ export class JobController {
       message: 'Job retrieved successfully',
     };
   }
-
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
@@ -168,7 +199,6 @@ export class JobController {
       message: 'Job updated successfully',
     };
   }
-
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)

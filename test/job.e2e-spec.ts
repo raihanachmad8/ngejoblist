@@ -314,6 +314,37 @@ describe('JobController (e2e)', () => {
     });
   });
 
+  describe('Authorization for /jobs endpoints', () => {
+    it('should return unauthorized when no token is provided', async () => {
+      const response = await request(app.getHttpServer()).post('/jobs').send({
+        title: 'Unauthorized Test Job',
+        description: 'This request should fail',
+        salary_start: 5000,
+        salary_end: 10000,
+        start_date: '2024-01-01',
+        end_date: '2024-12-31',
+      });
+      expect(response.status).toBe(401);
+      expect(response.body.message).toContain('Unauthorized');
+    });
+
+    it('should return forbidden for non-COMPANY roles', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/jobs')
+        .set('Authorization', `Bearer ${userAccess}`) // `userAccess` is a non-COMPANY role
+        .send({
+          title: 'Forbidden Test Job',
+          description: 'This request should fail',
+          salary_start: 5000,
+          salary_end: 10000,
+          start_date: '2024-01-01',
+          end_date: '2024-12-31',
+        });
+      expect(response.status).toBe(403);
+      expect(response.body.message).toContain('Access denied');
+    });
+  });
+
   describe('DELETE /jobs/:id', () => {
     it('should delete a job by ID', async () => {
       const jobResponse = await request(app.getHttpServer())
