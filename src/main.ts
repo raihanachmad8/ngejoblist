@@ -5,7 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { LoggerService } from './core/logger/logger.service';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import helmet from 'helmet';
-import { TransformResponseInterceptor } from './common/inteceptors/response.interceptor';
+import { TransformResponseInterceptor } from './common/interceptors/response.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {

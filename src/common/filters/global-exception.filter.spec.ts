@@ -71,7 +71,7 @@ describe('GlobalExceptionFilter', () => {
       }),
     } as any;
 
-    const exception = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    const exception = new HttpException('Access denied', HttpStatus.FORBIDDEN);
     filter.catch(exception, mockArgumentsHost);
 
     // Now verify the reply method is called on the mock httpAdapter
@@ -79,7 +79,7 @@ describe('GlobalExceptionFilter', () => {
       mockArgumentsHost.switchToHttp().getResponse(),
       expect.objectContaining({
         statusCode: HttpStatus.FORBIDDEN,
-        message: 'Forbidden',
+        message: 'Access denied',
         method: 'GET',
         path: '/test',
         timestamp: expect.any(String),  // Timestamp should be a valid string
