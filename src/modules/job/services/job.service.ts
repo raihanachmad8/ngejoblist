@@ -10,7 +10,6 @@ import {
   UpdateJobInput,
 } from '../dto/job.dto';
 import { LoggerService } from '../../../core/logger/logger.service';
-import { tr } from '@faker-js/faker/.';
 
 @Injectable()
 export class JobService {
@@ -19,6 +18,13 @@ export class JobService {
     private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Creates a new job entry.
+   * @param user_id - The ID of the user creating the job.
+   * @param data - The data for the job to be created.
+   * @returns A promise that resolves to the created job.
+   * @throws BadRequestException if there is an error creating the job.
+   */
   async createJob(user_id: string, data: CreateJobInput) {
     this.logger.log('Creating new job entry...');
 
@@ -26,8 +32,8 @@ export class JobService {
       where: { user_id: user_id },
     });
 
-    const transaction = await this.prisma.$transaction(async (prisma) => {
-      try {
+    try {
+      const job = await this.prisma.$transaction(async (prisma) => {
         const job = await prisma.job.create({
           data: {
             title: data.title,
@@ -44,15 +50,24 @@ export class JobService {
 
         this.logger.log(`Job created with ID: ${job.id}`);
         return job;
-      } catch (error) {
-        this.logger.error('Error creating job', error.stack);
-        throw new BadRequestException('Error creating job');
-      }
-    });
+      });
 
-    return transaction;
+      return job;
+    } catch (error) {
+      this.logger.error('Error creating job', error.stack);
+      throw new BadRequestException('Error creating job');
+    }
   }
 
+  /**
+   * Updates an existing job entry.
+   * @param user_id - The ID of the user updating the job.
+   * @param jobId - The ID of the job to be updated.
+   * @param data - The data to update the job with.
+   * @returns A promise that resolves to the updated job.
+   * @throws NotFoundException if the job is not found.
+   * @throws BadRequestException if there is an error updating the job.
+   */
   async updateJob(user_id: string, jobId: string, data: UpdateJobInput) {
     this.logger.log(`Updating job with ID: ${jobId}`);
 
@@ -64,14 +79,14 @@ export class JobService {
         },
       },
     });
-    
+
     if (!job) {
       this.logger.warn(`Job with ID: ${jobId} not found`);
       throw new NotFoundException('Job not found');
     }
 
-    const transaction = await this.prisma.$transaction(async (prisma) => {
-      try {
+    try {
+      const updatedJob = await this.prisma.$transaction(async (prisma) => {
         const updatedJob = await prisma.job.update({
           where: { id: jobId },
           data,
@@ -79,15 +94,23 @@ export class JobService {
 
         this.logger.log(`Job with ID: ${jobId} updated successfully`);
         return updatedJob;
-      } catch (error) {
-        this.logger.error('Error updating job', error.stack);
-        throw new BadRequestException('Error updating job');
-      }
-    });
+      });
 
-    return transaction;
+      return updatedJob;
+    } catch (error) {
+      this.logger.error('Error updating job', error.stack);
+      throw new BadRequestException('Error updating job');
+    }
   }
 
+  /**
+   * Deletes a job entry.
+   * @param user_id - The ID of the user deleting the job.
+   * @param jobId - The ID of the job to be deleted.
+   * @returns A promise that resolves to a boolean indicating success.
+   * @throws NotFoundException if the job is not found.
+   * @throws BadRequestException if there is an error deleting the job.
+   */
   async deleteJob(user_id: string, jobId: string) {
     this.logger.log(`Deleting job with ID: ${jobId}`);
 
@@ -104,22 +127,25 @@ export class JobService {
       throw new NotFoundException('Job not found');
     }
 
-    // Start transaction
-    const transaction = await this.prisma.$transaction(async (prisma) => {
-      try {
+    try {
+      await this.prisma.$transaction(async (prisma) => {
         await prisma.job.delete({ where: { id: jobId } });
 
         this.logger.log(`Job with ID: ${jobId} deleted successfully`);
         return true;
-      } catch (error) {
-        this.logger.error('Error deleting job', error.stack);
-        throw new BadRequestException('Error deleting job');
-      }
-    });
-
-    return transaction;
+      });
+    } catch (error) {
+      this.logger.error('Error deleting job', error .stack);
+      throw new BadRequestException('Error deleting job');
+    }
   }
 
+  /**
+   * Retrieves all jobs with optional filters.
+   * @param filters - The filters to apply when fetching jobs.
+   * @returns A promise that resolves to an array of jobs.
+   * @throws BadRequestException if there is an error fetching jobs.
+   */
   async getAllJobs(filters: FilterGetAllInput) {
     this.logger.log('Fetching all jobs with filters...');
 
@@ -159,6 +185,12 @@ export class JobService {
     }
   }
 
+  /**
+   * Retrieves a job by its ID.
+   * @param jobId - The ID of the job to be fetched.
+   * @returns A promise that resolves to the job.
+   * @throws NotFoundException if the job is not found.
+   */
   async getJobById(jobId: string) {
     this.logger.log(`Fetching job with ID: ${jobId}`);
 

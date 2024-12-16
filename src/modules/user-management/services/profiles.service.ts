@@ -1,4 +1,3 @@
-// src/modules/user-management/profiles/profiles.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -19,7 +18,14 @@ export class ProfilesService {
     private cripto: CryptoUtil,
   ) {}
 
-  // Update Profile with Transaction
+  /**
+   * Updates the user profile.
+   * @param userId - The ID of the user whose profile is to be updated.
+   * @param dto - The data for updating the profile.
+   * @returns The updated user profile.
+   * @throws NotFoundException if the user is not found.
+   * @throws BadRequestException if there is an error updating the profile.
+   */
   async updateProfile(userId: string, dto: UpdateProfileInput) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -27,9 +33,9 @@ export class ProfilesService {
 
     if (!user) {
       this.logger.error(
-        `User with ID ${userId} not found during profile update`,
+        `User  with ID ${userId} not found during profile update`,
       );
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User  not found');
     }
 
     // Begin transaction to ensure data consistency
@@ -60,7 +66,7 @@ export class ProfilesService {
       );
       return {
         user: transactionResult,
-      }
+      };
     } catch (error) {
       this.logger.error(
         `Error updating profile for user with ID ${userId}`,
@@ -70,7 +76,14 @@ export class ProfilesService {
     }
   }
 
-  // Upload Profile Photo with Transaction
+  /**
+   * Uploads a profile photo for the user.
+   * @param userId - The ID of the user whose profile photo is to be uploaded.
+   * @param file - The file to be uploaded as the profile photo.
+   * @returns The updated user profile with the new photo URL.
+   * @throws NotFoundException if the user is not found.
+   * @throws BadRequestException if there is an error uploading the photo.
+   */
   async uploadProfilePhoto(userId: string, file: Express.Multer.File) {
     // Validate user
     const user = await this.prisma.user.findUnique({
@@ -79,9 +92,9 @@ export class ProfilesService {
 
     if (!user) {
       this.logger.error(
-        `User with ID ${userId} not found during profile photo upload`,
+        `User  with ID ${userId} not found during profile photo upload`,
       );
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User  not found');
     }
 
     // Validate file
@@ -129,7 +142,7 @@ export class ProfilesService {
       );
       return {
         user: transactionResult,
-      }
+      };
     } catch (error) {
       this.logger.error(
         `Error uploading profile photo for user with ID ${userId}`,
@@ -139,7 +152,13 @@ export class ProfilesService {
     }
   }
 
-  // Delete Profile Photo with Transaction
+  /**
+   * Deletes the profile photo for the user.
+   * @param userId - The ID of the user whose profile photo is to be deleted.
+   * @returns The updated user profile with the profile photo set to null.
+   * @throws NotFoundException if the user or profile photo is not found.
+   * @throws BadRequestException if there is an error deleting the photo.
+   */
   async deleteProfilePhoto(userId: string) {
     // Validate user
     const user = await this.prisma.user.findUnique({
@@ -148,9 +167,9 @@ export class ProfilesService {
 
     if (!user) {
       this.logger.error(
-        `User with ID ${userId} not found during profile photo deletion`,
+        `User   with ID ${userId} not found during profile photo deletion`,
       );
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User   not found');
     }
 
     if (!user.profile) {
@@ -199,7 +218,14 @@ export class ProfilesService {
     }
   }
 
-  // Update Password with Transaction
+  /**
+   * Updates the user's password.
+   * @param userId - The ID of the user whose password is to be updated.
+   * @param dto - The data containing the current and new password.
+   * @returns The updated user ID.
+   * @throws NotFoundException if the user is not found.
+   * @throws BadRequestException if the current password is incorrect or if there is an error updating the password.
+   */
   async updatePassword(userId: string, dto: UpdatePasswordInput) {
     // Validate user
     const user = await this.prisma.user.findUnique({
@@ -208,9 +234,9 @@ export class ProfilesService {
 
     if (!user) {
       this.logger.error(
-        `User with ID ${userId} not found during password update`,
+        `User   with ID ${userId} not found during password update`,
       );
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User   not found');
     }
 
     // Check current password

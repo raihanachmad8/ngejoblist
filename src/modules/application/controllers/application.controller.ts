@@ -1,4 +1,3 @@
-// src/modules/application/controllers/application.controller.ts
 import {
   Controller,
   Post,
@@ -15,14 +14,14 @@ import {
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { ApplicationService } from '../services/application.service';
 import {
-  CreateApplicationDto,
   UpdateApplicationDto,
   GetApplicationByIdDto,
   FilterApplicationsDto,
-  CreateApplicationInput,
   UpdateApplicationInput,
   GetApplicationByIdInput,
   FilterApplicationsInput,
+  GetJobByIdDto,
+  GetJobByIdInput,
 } from '../dto/application.dto';
 import {
   ApiTags,
@@ -31,9 +30,13 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AtGuard } from '../../../modules/auth/guards/at.guard';
 import { GetCurrentUser } from '../../../common/decorators';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('Applications')
 @Controller('applications')
@@ -46,70 +49,61 @@ export class ApplicationController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Application successfully created',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'cuid' },
-        job_id: { type: 'string', format: 'cuid' },
-        user_id: { type: 'string', format: 'cuid' },
-        status: { type: 'string', enum: ['APPLIED'] },
-      },
-    },
   })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  @ApiResponse({ status: 409, description: 'Application already exists' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         job_id: { type: 'string', format: 'cuid' },
-        user_id: { type: 'string', format: 'cuid' },
       },
-      required: ['job_id', 'user_id'],
+      example: {
+        job_id: 'cku5f9x6s0000l6qk6d2j1l8s',
+      },
     },
   })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(Role.JOBSEEKER)
   @UseGuards(AtGuard)
   async createApplication(
     @GetCurrentUser() user: any,
-    @Body(new ZodValidationPipe(CreateApplicationDto))
-    dto: CreateApplicationInput,
+    @Body(new ZodValidationPipe(GetJobByIdDto)) body: GetJobByIdInput,
   ) {
-    const result = await this.applicationService.createApplication(dto);
+    const result = await this.applicationService.createApplication(
+      user['sub'],
+      body.job_id,
+    );
     return {
       ...result,
       message: 'Application created successfully',
     };
   }
 
-  @Get(':id')
+  @Get(':application_id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get application by ID' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Application retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'cuid' },
-        job_id: { type: 'string', format: 'cuid' },
-        user_id: { type: 'string', format: 'cuid' },
-        status: { type: 'string', enum: ['APPLIED', 'REJECTED', 'ACCEPTED'] },
-      },
-    },
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Application not found',
-  })
+  @ApiResponse({ status: 404, description: 'Application not found' })
   @ApiParam({
-    name: 'id',
+    name: 'application_id',
     description: 'ID of the application',
     type: 'string',
     format: 'cuid',
   })
   async getApplicationById(
-    @Param(new ZodValidationPipe(GetApplicationByIdDto)) params: GetApplicationByIdInput,
+    @Param(new ZodValidationPipe(GetApplicationByIdDto))
+    params: GetApplicationByIdInput,
   ) {
     const application = await this.applicationService.getApplicationById(
-      params.id,
+      params.application_id,
     );
     return {
       application,
@@ -117,41 +111,47 @@ export class ApplicationController {
     };
   }
 
-  @Put(':id')
+  @Put(':application_id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update application by ID' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Application updated successfully',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Application not found',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID of the application to update',
-    type: 'string',
-    format: 'cuid',
-  })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Application not found' })  
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        status: { type: 'string', enum: ['APPLIED', 'REJECTED', 'ACCEPTED'] },
+        status: { type: 'string', enum: ['REJECTED', 'ACCEPTED'] },
       },
-      required: ['status'],
+      example: {
+        status: 'ACCEPTED',
+      },
     },
   })
+  @ApiParam({
+    name: 'application_id',
+    description: 'ID of the application to update',
+    type: 'string',
+    format: 'cuid',
+  })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(Role.COMPANY)
   @UseGuards(AtGuard)
   async updateApplication(
-    @Param('id') applicationId: string,
+    @Param(new ZodValidationPipe(GetApplicationByIdDto))
+    params: GetApplicationByIdInput,
     @Body(new ZodValidationPipe(UpdateApplicationDto))
-    dto: UpdateApplicationInput,
+    body: UpdateApplicationInput,
   ) {
     const result = await this.applicationService.updateApplication(
-      applicationId,
-      dto,
+      params.application_id,
+      body,
     );
     return {
       ...result,
@@ -165,33 +165,14 @@ export class ApplicationController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Applications retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        applications: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', format: 'cuid' },
-              job_id: { type: 'string', format: 'cuid' },
-              user_id: { type: 'string', format: 'cuid' },
-              status: {
-                type: 'string',
-                enum: ['APPLIED', 'REJECTED', 'ACCEPTED'],
-              },
-            },
-          },
-        },
-      },
-    },
   })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiQuery({
     name: 'status',
     description: 'Filter applications by status',
     required: false,
     type: 'string',
-    enum: ['APPLIED', 'REJECTED', 'ACCEPTED'],
+    enum: ['REJECTED', 'ACCEPTED'],
   })
   async filterApplications(
     @Query(new ZodValidationPipe(FilterApplicationsDto))
@@ -203,6 +184,45 @@ export class ApplicationController {
     return {
       applications,
       message: 'Applications retrieved successfully',
+    };
+  }
+
+  @Delete(':application_id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel application by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Application cancelled successfully.',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+          },
+        },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Application not found' })
+  @ApiBearerAuth()
+  @UseGuards(RolesGuard)
+  @Roles(Role.JOBSEEKER)
+  @UseGuards(AtGuard)
+  async cancelApplication(
+    @GetCurrentUser() user: any,
+    @Param(new ZodValidationPipe(GetApplicationByIdDto))
+    params: GetApplicationByIdInput,
+  ) {
+    const result = await this.applicationService.cancelApplication(
+      user['sub'],
+      params.application_id,
+    );
+    return {
+      result,
+      message: 'Application cancelled successfully',
     };
   }
 }

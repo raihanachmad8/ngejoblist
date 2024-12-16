@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { TransformResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 import { CryptoUtil } from '../src/common/utils';
 import * as cuid from 'cuid';
+import { Role } from '@prisma/client';
 
 describe('ApplicationController (e2e)', () => {
   let app: INestApplication;
@@ -106,6 +107,7 @@ describe('ApplicationController (e2e)', () => {
             password_hash: await cripto.hashPassword(
               companyCredentials.password,
             ),
+            role: Role.COMPANY,
           },
         },
         about: companyCredentials.about,
@@ -175,6 +177,16 @@ describe('ApplicationController (e2e)', () => {
       expect(response.status).toBe(400);
       expect(response.body.errors[0].message).toBeDefined();
     });
+
+    it('should return a forbidden error for unauthorized users', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/applications')
+        .set('Authorization', `Bearer ${companyAccessToken}`)
+        .send(applicationData);
+
+      expect(response.status).toBe(403);
+      expect(response.body.message).toContain('Access denied');
+    });
   });
 
   describe('GET /applications/:id', () => {
@@ -202,7 +214,7 @@ describe('ApplicationController (e2e)', () => {
     it('should update an application', async () => {
       const response = await request(app.getHttpServer())
         .put(`/applications/${applicationId}`)
-        .set('Authorization', `Bearer ${userAccessToken}`)
+        .set('Authorization', `Bearer ${companyAccessToken}`)
         .send({ status: 'ACCEPTED' });
 
       expect(response.status).toBe(200);
@@ -213,11 +225,32 @@ describe('ApplicationController (e2e)', () => {
     it('should return validation errors for invalid update data', async () => {
       const response = await request(app.getHttpServer())
         .put(`/applications/${applicationId}`)
-        .set('Authorization', `Bearer ${userAccessToken}`)
+        .set('Authorization', `Bearer ${companyAccessToken}`)
         .send({ status: 'INVALID_STATUS' });
 
       expect(response.status).toBe(400);
       expect(response.body.errors[0].message).toBeDefined();
+    });
+
+    it('should return a not found error for a non-existent application', async () => {
+      const notFoundID = cuid();
+      const response = await request(app.getHttpServer())
+        .put(`/applications/${notFoundID}`)
+        .set('Authorization', `Bearer ${companyAccessToken}`)
+        .send({ status: 'ACCEPTED' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toContain('Application not found');
+    });
+
+    it('should return a forbidden error for unauthorized users', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/applications/${applicationId}`)
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({ status: 'ACCEPTED' });
+
+      expect(response.status).toBe(403);
+      expect(response.body.message).toContain('Access denied');
     });
   });
 
@@ -232,5 +265,35 @@ describe('ApplicationController (e2e)', () => {
       expect(response.body.message).toBe('Applications retrieved successfully');
       expect(response.body.data.applications).toBeInstanceOf(Array);
     });
+  });
+
+  describe('DELETE /applications/:id', () => {
+    it('should cancel an application', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(`/applications/${applicationId}`)
+        .set('Authorization', `Bearer ${userAccessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Application cancelled successfully');
+    });
+
+    it('should return a not found error for non-existent application', async () => {
+      const notFoundID = cuid();
+      const response = await request(app.getHttpServer())
+        .delete(`/applications/${notFoundID}`)
+        .set('Authorization', `Bearer ${userAccessToken}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toContain('Application not found');
+    });
+  });
+
+  it('should return a forbidden error for unauthorized users', async () => {
+    const response = await request(app.getHttpServer())
+      .delete(`/applications/${applicationId}`)
+      .set('Authorization', `Bearer ${companyAccessToken}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toContain('Access denied');
   });
 });

@@ -82,7 +82,7 @@ model Application {
   id         String            @id @default(cuid())
   job_id     String
   user_id    String
-  status     ApplicationStatus @default(APPLIED)
+  status     ApplicationStatus @default(PENDING)
   created_at DateTime          @default(now())
   updated_at DateTime          @updatedAt
 
@@ -93,7 +93,8 @@ model Application {
 }
 
 enum ApplicationStatus {
-  APPLIED
+  CANCELLED
+  PENDING
   REJECTED
   ACCEPTED
 }

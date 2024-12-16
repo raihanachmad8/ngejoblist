@@ -23,6 +23,13 @@ export class AuthService {
     private readonly logger: LoggerService,
   ) {}
 
+  /**
+   * Generates an access token for a user.
+   * @param userId - The ID of the user.
+   * @param role - The role of the user.
+   * @param email - The email of the user.
+   * @returns A promise that resolves to the generated access token.
+   */
   private async generateAccessToken(
     userId: string,
     role: Role,
@@ -37,6 +44,12 @@ export class AuthService {
     );
   }
 
+  /**
+   * Generates a refresh token for a user.
+   * @param userId - The ID of the user.
+   * @param email - The email of the user.
+   * @returns A promise that resolves to the generated refresh token.
+   */
   private async generateRefreshToken(
     userId: string,
     email: string,
@@ -50,6 +63,15 @@ export class AuthService {
     );
   }
 
+  /**
+   * Signs up a new user.
+   * @param dto - The signup data.
+   * @returns A promise that resolves to the created user and their tokens.
+   * @throws ConflictException if the email or name is already registered.
+   * @throws InternalServerErrorException if there is an error creating the user.
+   * @throws UnauthorizedException if the password is invalid.
+   * @throws InternalServerErrorException if there is an error creating the token.
+   */
   async signup(dto: SignupInput) {
     const { name, email, password } = dto;
     this.logger.log(`Signup attempt for email: ${email}`);
@@ -120,6 +142,13 @@ export class AuthService {
     }
   }
 
+  /**
+   * Signs up a new company.
+   * @param dto - The signup data for the company.
+   * @returns A promise that resolves to the created company and their tokens.
+   * @throws ConflictException if the email or name is already registered.
+   * @throws InternalServerErrorException if there is an error creating the company.
+   */
   async signupCompany(dto: SignupCompanyInput) {
     const { name, email, password, about, address, employees, phone, website } =
       dto;
@@ -178,9 +207,11 @@ export class AuthService {
             company.user.id,
             company.user.role,
             company.user.email,
-
           ),
-          refresh_token: await this.generateRefreshToken(company.user.id, company.user.email),
+          refresh_token: await this.generateRefreshToken(
+            company.user.id,
+            company.user.email,
+          ),
         };
 
         await prisma.personalToken.create({
@@ -222,6 +253,13 @@ export class AuthService {
     }
   }
 
+  /**
+   * Signs in a user and returns their tokens.
+   * @param dto - The signin data.
+   * @returns A promise that resolves to the user and their tokens.
+   * @throws UnauthorizedException if the user is not found or the password is invalid.
+   * @throws InternalServerErrorException if there is an error creating the token.
+   */
   async signin(dto: SigninInput) {
     const { email, password } = dto;
     this.logger.log(`Signin attempt for email: ${email}`);
@@ -280,6 +318,10 @@ export class AuthService {
     }
   }
 
+  /**
+   * Deletes expired tokens from the database.
+   * This method is scheduled to run every day at midnight.
+   */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async deleteExpiredToken() {
     this.logger.log('Running scheduled task: deleteExpiredToken');
@@ -302,6 +344,14 @@ export class AuthService {
     }
   }
 
+  /**
+   * Refreshes the access and refresh tokens for a user.
+   * @param userId - The ID of the user.
+   * @param refreshToken - The refresh token to validate.
+   * @returns A promise that resolves to the new tokens.
+   * @throws UnauthorizedException if the refresh token is invalid.
+   * @throws InternalServerErrorException if there is an error refreshing the tokens.
+   */
   async refreshTokens(userId: string, refreshToken: string) {
     this.logger.log(`Attempting to refresh token for user ID: ${userId}`);
 
@@ -347,12 +397,19 @@ export class AuthService {
     }
   }
 
+  /**
+   * Retrieves the current user's information.
+   * @param userId - The ID of the user.
+   * @returns A promise that resolves to the user's information.
+   * @throws UnauthorizedException if the user is not found.
+   * @throws InternalServerErrorException if there is an error fetching the user.
+   */
   async getCurrentUser(userId: string) {
     this.logger.log(`Fetching current user for user ID: ${userId}`);
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      this.logger.warn(`User not found for user ID: ${userId}`);
+      this.logger.warn(`User  not found for user ID: ${userId}`);
       throw new UnauthorizedException('Access denied');
     }
 
@@ -365,6 +422,14 @@ export class AuthService {
     };
   }
 
+  /**
+   * Signs out a user by deleting their access token.
+   * @param userId - The ID of the user.
+   * @param accessToken - The access token to be deleted.
+   * @returns A promise that resolves to a signout message.
+   * @throws UnauthorizedException if the token is not found.
+   * @throws InternalServerErrorException if there is an error signing out.
+   */
   async signout(userId: string, accessToken: string) {
     this.logger.log(`Attempting signout for user ID: ${userId}`);
 
@@ -388,7 +453,7 @@ export class AuthService {
       });
 
       this.logger.log(`Signout successful for user ID: ${userId}`);
-      return { message: 'User logged out successfully' };
+      return { message: 'User  logged out successfully' };
     } catch (error) {
       this.logger.error(`Signout failed for user ID: ${userId}`, error.stack);
       throw new InternalServerErrorException('Failed to sign out');
