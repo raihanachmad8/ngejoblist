@@ -1,7 +1,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/raihanachmad8/ngejoblist">
-    <img src="./logo.png" alt="Logo" height="80">
+    <img src="./swagger.png" alt="Logo" height="1000">
   </a>
 
   <h3 align="center">NgeJobList Backend</h3>
